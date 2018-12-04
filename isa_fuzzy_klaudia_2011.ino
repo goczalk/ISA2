@@ -9,6 +9,7 @@
 #include <FuzzyIO.h>
 #include <FuzzySet.h>
 #include <FuzzyRuleAntecedent.h>
+#include "helper.h"
 
 // Step 1 -  Instantiating an object library
 Fuzzy* fuzzy = new Fuzzy();
@@ -24,6 +25,15 @@ double Setpoint, Input, Output;
 //Specify the links and initial tuning parameters
 //PID myPID(&Input, &Output, &Setpoint, 2, 0.15/*szybciej widac zmiany*/, 0, DIRECT);
 //PID myPID(&Input, &Output, &Setpoint, 2, 5, 1, DIRECT);
+
+
+// to get info from python opencv
+const byte numChars = 32;
+char receivedChars[numChars];
+char tempChars[numChars];        // temporary array for use when parsing
+dataPacket packet;
+boolean newData = false;
+
 
 void SetPowerLevel(PowerSideEnum side, int level)
 {
@@ -197,7 +207,6 @@ double getCompassAngle(){
     int16_t y = qmc.getY();
 
 //https://pastebin.com/MTj68RFr
-    
 //    x = -(x + 90) / 5.4;
 //    y = -(y + 200) / 5.8;
 
@@ -212,20 +221,44 @@ double getCompassAngle(){
 }
 
 
+
 void loop(void){
-  int b = 0;
-  if (Serial3.available()){
-      b = Serial3.read();
-  }
-  
-  char buf[100];
-  Serial.println(b);
-//  sprintf(buf, "\n HALO: %d", b);
-  delay(300);
-  
+  recvWithStartEndMarkers();
+    if (newData == true) {
+        strcpy(tempChars, receivedChars);
+            // this temporary copy is necessary to protect the original data
+            //   because strtok() used in parseData() replaces the commas with \0
+        packet = parseData();
+        showParsedData(packet);
+        newData = false;
+    
+      
+        double direct = (double)packet.packet_int;
+        
+        fuzzy->setInput(1, -direct);
+      
+        fuzzy->fuzzify();
+      
+        double leftVelocity = fuzzy->defuzzify(1);
+        double rightVelocity= fuzzy->defuzzify(2);
+      
+      //  sprintf(buffer, "\n Direct: %lf; leftVelocity: %lf, rightVelocity: %lf", direct, leftVelocity, rightVelocity);
+      //  Serial.print(buffer);
+      
+        SetPowerLevel(PowerSideEnum::Left, leftVelocity);
+        SetPowerLevel(PowerSideEnum::Right, rightVelocity);
+    }
+    else{
+        SetPowerLevel(PowerSideEnum::Left, 0.0);
+        SetPowerLevel(PowerSideEnum::Right, 0.0);
+    }
+
+  delay(100);
 }
 
-void floop(void){
+
+
+void floop_N(void){
   double angle = getCompassAngle();
   fuzzy->setInput(1, angle);
 
@@ -628,3 +661,66 @@ void zloop(void)
     Serial1.print("' jest nieznane; MoĹźe 'help'?\n");
   }
 }
+
+//============
+// TO GET DATA FROM PYTHON OPEN CV
+void recvWithStartEndMarkers() {
+    static boolean recvInProgress = false;
+    static byte ndx = 0;
+    char startMarker = '<';
+    char endMarker = '>';
+    char rc;
+
+    while (Serial.available() > 0 && newData == false) {
+        rc = Serial.read();
+
+        if (recvInProgress == true) {
+            if (rc != endMarker) {
+                receivedChars[ndx] = rc;
+                ndx++;
+                if (ndx >= numChars) {
+                    ndx = numChars - 1;
+                }
+            }
+            else {
+                receivedChars[ndx] = '\0'; // terminate the string
+                recvInProgress = false;
+                ndx = 0;
+                newData = true;
+            }
+        }
+
+        else if (rc == startMarker) {
+            recvInProgress = true;
+        }
+    }
+}
+
+dataPacket parseData() {      // split the data into its parts
+
+    dataPacket tmpPacket;
+
+    char * strtokIndx; // this is used by strtok() as an index
+
+    strtokIndx = strtok(tempChars,",");      // get the first part - the string
+    strcpy(tmpPacket.message, strtokIndx); // copy it to messageFromPC
+ 
+    strtokIndx = strtok(NULL, ","); // this continues where the previous call left off
+    tmpPacket.packet_int = atoi(strtokIndx);     // convert this part to an integer
+
+    strtokIndx = strtok(NULL, ",");
+    tmpPacket.packet_float = atof(strtokIndx);     // convert this part to a float
+
+    return tmpPacket;
+}
+
+void showParsedData(dataPacket packet) {
+    Serial.print("Message ");
+    Serial.println(packet.message);
+    Serial.print("Integer ");
+    Serial.println(packet.packet_int);
+    Serial.print("Float ");
+    Serial.println(packet.packet_float);
+}
+
+// ==========

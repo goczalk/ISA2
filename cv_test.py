@@ -31,7 +31,7 @@ cameraResolution = (640, 480)
 # rawCapture = PiRGBArray(camera, size=cameraResolution)
 
 # initialize the video stream and allow the cammera sensor to warmup
-vs = VideoStream(usePiCamera=usesPiCamera, resolution=cameraResolution, framerate=60).start()
+vs = VideoStream(usePiCamera=usesPiCamera, resolution=cameraResolution, framerate=32).start()
 time.sleep(2.0)
 
 colorLower = (0, 100, 50)
@@ -42,6 +42,7 @@ roiSize = (16, 16) # roi size on the scaled down image (converted to HSV)
 
 
 # # initialize serial communication
+#/dev/ttyACM1
 ser = serial.Serial(port='/dev/ttyACM0', baudrate=57600, timeout=0.05)
 
 while True:
