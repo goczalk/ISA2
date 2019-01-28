@@ -75,7 +75,12 @@ while True:
         cv2.dilate(mask, None, iterations=5)
 
         (_,contours, hierarchy) = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
+        #http://layer0.authentise.com/detecting-circular-shapes-using-contours.html
+        #for contour in contours:
+           # approx = cv2.approxPolyDP(contour,0.01*cv2.arcLength(contour,True),True)
+           #area = cv2.contourArea(contour)
+           #if ((len(approx) > 8) & (area > 30) ):
+             #   contour_list.append(contour)
         boundingBoxes = []
         biggestObject_BoundingBox = None
         biggestObjectMiddle = None
