@@ -9,6 +9,13 @@ import serial
 import numpy as np
 import cv2
 
+def add_50_to_coord(x, edge):
+    if x + 50 > edge:
+        new_x = x
+    else:
+        new_x = x - 50
+    return nex_x
+
 
 def translate(value, oldMin, oldMax, newMin=-100, newMax=100):
     # Figure out how 'wide' each range is
@@ -39,7 +46,7 @@ colorUpper = (100, 255, 255)
 colorTolerance = 3
 paused = False
 roiSize = (16, 16) # roi size on the scaled down image (converted to HSV)
-
+a_button_clicked = False
 
 # # initialize serial communication
 # ser = serial.Serial(port='/dev/ttyACM0', baudrate=57600, timeout=0.05)
@@ -55,7 +62,6 @@ while True:
         height, width = frame.shape[0:2]
         scaleFactor = 4
         newWidth, newHeight = width//scaleFactor, height//scaleFactor
-
 
         resizedColor = cv2.resize(frame, (newWidth, newHeight), interpolation=cv2.INTER_CUBIC)
         resizedColor_blurred = cv2.GaussianBlur(resizedColor, (5, 5), 0)
@@ -74,66 +80,71 @@ while True:
         cv2.dilate(mask, None, iterations=5)
 
         (_, contours, hierarchy) = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
-        # circle?
-        # tak wyglada zwracanie approx, sortuj lub max i min wyciagnij
-        """
-[[[79 24]]
-
- [[73 24]]
-
- [[71 28]]
-
- [[67 28]]
-
- [[61 32]]
-
- [[61 39]]
-
- [[58 42]]
-
- [[59 50]]
-
- [[66 57]]
-
- [[60 49]]
-
- [[63 43]]
-
- [[72 46]]
-
- [[82 46]]
-
- [[90 50]]
-
- [[92 46]]
-
- [[90 33]]]
-
-        """
-        #http://layer0.authentise.com/detecting-circular-shapes-using-contours.html
-        contour_list = []
-        for contour in contours:
-            approx = cv2.approxPolyDP(contour, 0.01*cv2.arcLength(contour, True), True)
-            print("approx")
-            print(len(approx))
-            #print(approx)
-            area = cv2.contourArea(contour)
-            if ((len(approx) > 14) and (area > 30)):
-                print(approx)
-                # more conditions
-                #crop_img = resizedHSV[y:y+h, x:x+w]
-                #print(approx[0][0])
-                min_coord_x, min_coord_y = approx[0][0]
-                #print(approx[0])
-                #print(min_coord_x)
-                #print(min_coord_y)
-                max_coord_x, max_coord_y = approx[-1][0]
+        
+        contour_list = contours
+        if a_button_clicked:
+            #try:
+            rect = cv2.boundingRect(mask)
+            
+            #print(rect)
+            # [0] -> Y, [1] -> X ; jest na odwrot
+            # change 50 for edges
+            crop_img = frame[(scaleFactor*rect[1] - 50):(scaleFactor*rect[1]+scaleFactor*rect[3]+50), (scaleFactor*rect[0]-50):(scaleFactor*rect[0]+scaleFactor*rect[2]+50)]
+            cv2.imshow("crop_img", crop_img)
+            output = crop_img.copy()
+            cv2.imshow("output", output)
+            gray_cropped = cv2.cvtColor(crop_img, cv2.COLOR_BGR2GRAY)
+            circles = cv2.HoughCircles(gray_cropped, cv2.HOUGH_GRADIENT, 1.2, 1, minRadius=10)
+            # ensure at least some circles were found
+            print(circles)
+            if circles is not None:
+                # convert the (x, y) coordinates and radius of the circles to integers
+                circles = np.round(circles[0, :]).astype("int")
+         
+                # loop over the (x, y) coordinates and radius of the circles
+                for (x, y, r) in circles:
+                        # draw the circle in the output image, then draw a rectangle
+                        # corresponding to the center of the circle
+                        cv2.circle(output, (x, y), r, (0, 255, 0), 4)
+                        cv2.rectangle(output, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
+         
+                # show the output image
+                cv2.imshow("output", output)
+            else:
+                cv2.destroyWindow("output")
+                #http://layer0.authentise.com/detecting-circular-shapes-using-contours.html            
+                #for contour in contours:
+                #    approx = cv2.approxPolyDP(contour, 0.01*cv2.arcLength(contour, True), True)
+                    #print("approx")
+                    #print(len(approx))
+                    #print(approx)
+                #    area = cv2.contourArea(contour)
+                #    if ((len(approx) > 14) and (area > 30)):
+                        #print(approx)
+                        #approx = approx.reshape(len(approx), 2)
+                        #print(approx)
+                        #min_value_x, min_value_y = np.min(approx, axis=0)
+                        #max_value_x, max_value_y = np.max(approx, axis=0)
+                        
+                        #print(min_value_x)
+                        #print(min_value_y)
+                        #print(max_value_x)
+                        #print(max_value_y)
+                        #crop_img = frame[min_value_x:max_value_x, min_value_y:max_value_y]
+                        
+                        #cropped_resizedColor = cv2.resize(crop_img, (newWidth, newHeight), interpolation=cv2.INTER_CUBIC)
+                        #cropped_resizedColor_blurred = cv2.GaussianBlur(cropped_resizedColor, (5, 5), 0)
+                        #cropped_resizedHSV = cv2.cvtColor(cropped_resizedColor_blurred, cv2.COLOR_BGR2HSV)
+                        
+                        #cv2.imshow("resizedHSV", cropped_resizedHSV)
+                        #contour_list.append(contour)
                 
-                #crop_img = resizedHSV[min_coord_x:max_coord_x, min_coord_y:max_coord_y]
-                cv2.imshow("resizedHSV", resizedHSV)
-                #cv2.imshow("crop_img", crop_img)
-                contour_list.append(contour)
+            
+            #except (Exception ):
+            #    print("halo, except")
+            #    pass
+
+                
 
 
         boundingBoxes = []
@@ -199,6 +210,7 @@ while True:
     if key == ord('q'):
         break
     elif key == ord('a'):
+        a_button_clicked = True
         avg_h = 0
         avg_s = 0
         avg_v = 0
