@@ -80,7 +80,8 @@ while True:
         cv2.dilate(mask, None, iterations=5)
 
         (_, contours, hierarchy) = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        
+        contour_list = []
+        """
         contour_list = contours
         if a_button_clicked:
             #try:
@@ -112,32 +113,33 @@ while True:
                 cv2.imshow("output", output)
             else:
                 cv2.destroyWindow("output")
+            """
                 #http://layer0.authentise.com/detecting-circular-shapes-using-contours.html            
-                #for contour in contours:
-                #    approx = cv2.approxPolyDP(contour, 0.01*cv2.arcLength(contour, True), True)
-                    #print("approx")
-                    #print(len(approx))
-                    #print(approx)
-                #    area = cv2.contourArea(contour)
-                #    if ((len(approx) > 14) and (area > 30)):
-                        #print(approx)
-                        #approx = approx.reshape(len(approx), 2)
-                        #print(approx)
-                        #min_value_x, min_value_y = np.min(approx, axis=0)
-                        #max_value_x, max_value_y = np.max(approx, axis=0)
-                        
-                        #print(min_value_x)
-                        #print(min_value_y)
-                        #print(max_value_x)
-                        #print(max_value_y)
-                        #crop_img = frame[min_value_x:max_value_x, min_value_y:max_value_y]
-                        
-                        #cropped_resizedColor = cv2.resize(crop_img, (newWidth, newHeight), interpolation=cv2.INTER_CUBIC)
-                        #cropped_resizedColor_blurred = cv2.GaussianBlur(cropped_resizedColor, (5, 5), 0)
-                        #cropped_resizedHSV = cv2.cvtColor(cropped_resizedColor_blurred, cv2.COLOR_BGR2HSV)
-                        
-                        #cv2.imshow("resizedHSV", cropped_resizedHSV)
-                        #contour_list.append(contour)
+        for contour in contours:
+            approx = cv2.approxPolyDP(contour, 0.01*cv2.arcLength(contour, True), True)
+            #print("approx")
+            #print(len(approx))
+            #print(approx)
+            area = cv2.contourArea(contour)
+            if ((len(approx) > 14) and (area > 30)):
+                #print(approx)
+                #approx = approx.reshape(len(approx), 2)
+                #print(approx)
+                #min_value_x, min_value_y = np.min(approx, axis=0)
+                #max_value_x, max_value_y = np.max(approx, axis=0)
+                
+                #print(min_value_x)
+                #print(min_value_y)
+                #print(max_value_x)
+                #print(max_value_y)
+                #crop_img = frame[min_value_x:max_value_x, min_value_y:max_value_y]
+                
+                #cropped_resizedColor = cv2.resize(crop_img, (newWidth, newHeight), interpolation=cv2.INTER_CUBIC)
+                #cropped_resizedColor_blurred = cv2.GaussianBlur(cropped_resizedColor, (5, 5), 0)
+                #cropped_resizedHSV = cv2.cvtColor(cropped_resizedColor_blurred, cv2.COLOR_BGR2HSV)
+                
+                #cv2.imshow("resizedHSV", cropped_resizedHSV)
+                contour_list.append(contour)
                 
             
             #except (Exception ):
@@ -226,8 +228,8 @@ while True:
         avg_s /= i
         avg_v /= i
         print("HUE:{}, SAT:{}, VAL:{}".format(avg_h, avg_s, avg_v))
-        colorLower = (max(0,avg_h), max(0, avg_s - 50), max(0,avg_v - 50))
-        colorUpper = (min (255, avg_h), min(255, avg_s + 50), min(255, avg_v + 50))
+        colorLower = (max(0,avg_h), max(0, avg_s - 10), max(0,avg_v - 10))
+        colorUpper = (min (255, avg_h), min(255, avg_s + 80), min(255, avg_v + 80))
     elif key == ord('z'):
         h = roi[:,:,0]
         s = roi[:,:,1]
