@@ -10,11 +10,20 @@ import numpy as np
 import cv2
 
 def add_50_to_coord(x, edge):
-    if x + 50 > edge:
-        new_x = x
+    diff = edge - x + 50
+    if diff < 0:
+        new_x = x + (50 - diff)
+    else:
+        new_x = x + 50
+    return new_x
+
+
+def substract_50_from_coord(x):
+    if x - 50 < 0:
+        new_x = 0
     else:
         new_x = x - 50
-    return nex_x
+    return new_x
 
 
 def translate(value, oldMin, oldMax, newMin=-100, newMax=100):
@@ -81,21 +90,33 @@ while True:
 
         (_, contours, hierarchy) = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         contour_list = []
-        """
-        contour_list = contours
+        
+        #contour_list = contours
+        
+        
         if a_button_clicked:
-            #try:
+            
             rect = cv2.boundingRect(mask)
             
             #print(rect)
             # [0] -> Y, [1] -> X ; jest na odwrot
             # change 50 for edges
-            crop_img = frame[(scaleFactor*rect[1] - 50):(scaleFactor*rect[1]+scaleFactor*rect[3]+50), (scaleFactor*rect[0]-50):(scaleFactor*rect[0]+scaleFactor*rect[2]+50)]
-            cv2.imshow("crop_img", crop_img)
+            y_lower = substract_50_from_coord(scaleFactor*rect[1])
+            y_upper = add_50_to_coord(scaleFactor*rect[1]+scaleFactor*rect[3], height)
+            x_lower = substract_50_from_coord(scaleFactor*rect[0])
+            x_upper = add_50_to_coord(scaleFactor*rect[0]+scaleFactor*rect[2], width)
+            print(height, width)
+            print(y_lower, y_upper)
+            print(x_lower, x_upper)
+            crop_img = frame[y_lower:y_upper, x_lower:x_upper]
+            #cv2.imshow("crop_img", crop_img)
             output = crop_img.copy()
+            cv2.imwrite("x.jpg", crop_img)
             cv2.imshow("output", output)
-            gray_cropped = cv2.cvtColor(crop_img, cv2.COLOR_BGR2GRAY)
-            circles = cv2.HoughCircles(gray_cropped, cv2.HOUGH_GRADIENT, 1.2, 1, minRadius=10)
+            # nie dziala z blurem?
+            blur = cv2.GaussianBlur(crop_img, (5,5), 0)
+            gray_cropped = cv2.cvtColor(blur, cv2.COLOR_BGR2GRAY)
+            circles = cv2.HoughCircles(gray_cropped, cv2.HOUGH_GRADIENT, 1, 1000, param2=50, minRadius=20)
             # ensure at least some circles were found
             print(circles)
             if circles is not None:
@@ -111,9 +132,17 @@ while True:
          
                 # show the output image
                 cv2.imshow("output", output)
-            else:
-                cv2.destroyWindow("output")
-            """
+                #print("here")
+                #cv2.waitKey(0)
+                
+                for contour in contours:
+                    approx = cv2.approxPolyDP(contour, 0.01*cv2.arcLength(contour, True), True)
+                    area = cv2.contourArea(contour)
+                    if ((len(approx) > 14) and (area > 30)):
+                        contour_list.append(contour)
+                
+        
+        """
                 #http://layer0.authentise.com/detecting-circular-shapes-using-contours.html            
         for contour in contours:
             approx = cv2.approxPolyDP(contour, 0.01*cv2.arcLength(contour, True), True)
@@ -140,14 +169,7 @@ while True:
                 
                 #cv2.imshow("resizedHSV", cropped_resizedHSV)
                 contour_list.append(contour)
-                
-            
-            #except (Exception ):
-            #    print("halo, except")
-            #    pass
-
-                
-
+          """
 
         boundingBoxes = []
         biggestObject_BoundingBox = None
@@ -234,8 +256,8 @@ while True:
         h = roi[:,:,0]
         s = roi[:,:,1]
         v = roi[:,:,2]
-        colorLower = (int(np.min(h)), max(0, int(np.min(s)-20 )), max(0, int(np.min(v)-20)))
-        colorUpper = (int(np.max(h)), min(255, int(np.max(s)+20)), min(255, int(np.max(v)+20)))
+        colorLower = (int(np.min(h)), max(0, int(np.min(s))), max(0, int(np.min(v))))
+        colorUpper = (int(np.max(h)), min(255, int(np.max(s))), min(255, int(np.max(v))))
     elif key == ord('w'):
         colorTolerance = min(colorTolerance + 1, 50)
         print("New color range: {}".format(colorTolerance))
