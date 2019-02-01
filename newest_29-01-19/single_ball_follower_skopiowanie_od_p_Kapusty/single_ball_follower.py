@@ -105,20 +105,27 @@ while True:
             y_upper = add_50_to_coord(scaleFactor*rect[1]+scaleFactor*rect[3], height)
             x_lower = substract_50_from_coord(scaleFactor*rect[0])
             x_upper = add_50_to_coord(scaleFactor*rect[0]+scaleFactor*rect[2], width)
-            print(height, width)
-            print(y_lower, y_upper)
-            print(x_lower, x_upper)
+            #print(height, width)
+            #print(y_lower, y_upper)
+            #print(x_lower, x_upper)
             crop_img = frame[y_lower:y_upper, x_lower:x_upper]
             #cv2.imshow("crop_img", crop_img)
             output = crop_img.copy()
-            cv2.imwrite("x.jpg", crop_img)
             cv2.imshow("output", output)
-            # nie dziala z blurem?
+            
+            # is not working with canny at all?
+            #blur = crop_img
             blur = cv2.GaussianBlur(crop_img, (5,5), 0)
+            cv2.imshow("blur", blur)
             gray_cropped = cv2.cvtColor(blur, cv2.COLOR_BGR2GRAY)
-            circles = cv2.HoughCircles(gray_cropped, cv2.HOUGH_GRADIENT, 1, 1000, param2=50, minRadius=20)
+            #canny = cv2.Canny(gray_cropped, 50, 200, 10)
+            #cv2.imshow("canny", canny)
+            circles = cv2.HoughCircles(gray_cropped, cv2.HOUGH_GRADIENT, 1, 1000, param1=100, param2=30, minRadius=15, maxRadius=80)
             # ensure at least some circles were found
             print(circles)
+            
+            #cv2.imwrite("yy.jpg", crop_img)
+            
             if circles is not None:
                 # convert the (x, y) coordinates and radius of the circles to integers
                 circles = np.round(circles[0, :]).astype("int")
@@ -138,7 +145,8 @@ while True:
                 for contour in contours:
                     approx = cv2.approxPolyDP(contour, 0.01*cv2.arcLength(contour, True), True)
                     area = cv2.contourArea(contour)
-                    if ((len(approx) > 14) and (area > 30)):
+                    #print(len(approx))
+                    if ((len(approx) > 12) and (area > 30)):
                         contour_list.append(contour)
                 
         
