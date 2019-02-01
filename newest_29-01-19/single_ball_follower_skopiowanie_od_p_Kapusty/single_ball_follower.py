@@ -58,7 +58,9 @@ roiSize = (16, 16) # roi size on the scaled down image (converted to HSV)
 a_button_clicked = False
 
 # # initialize serial communication
-# ser = serial.Serial(port='/dev/ttyACM0', baudrate=57600, timeout=0.05)
+ser = serial.Serial(port='/dev/ttyAMA0', baudrate=57600, timeout=0.05)
+
+
 
 while True:
 # for cameraFrame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
@@ -227,7 +229,7 @@ while True:
             packet = '<packet, {}, {}>'.format(yaw, pitch)
             packetBytes = bytes(packet, 'utf-8')
             
-            # ser.write(packetBytes)
+            ser.write(packetBytes)
             # print(ser.read_all())
             
 

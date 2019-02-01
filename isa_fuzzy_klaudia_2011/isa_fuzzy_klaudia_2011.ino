@@ -103,7 +103,7 @@ void setup(void)
   Wire.begin();
   qmc.init();
   
-  Serial.begin(9600); // HC06
+  //Serial.begin(9600); // HC06
   qmc.reset();
 
   //initialize the variables we're linked to
@@ -223,8 +223,14 @@ double getCompassAngle(){
 
 
 void loop(void){
+  char rc = 0;
+  while (Serial3.available() > 0) {
+        rc = Serial3.read();
+        Serial.println(rc);
+  }
+  /*
   recvWithStartEndMarkers();
-    if (newData == true) {
+  if (newData == true) {
         strcpy(tempChars, receivedChars);
             // this temporary copy is necessary to protect the original data
             //   because strtok() used in parseData() replaces the commas with \0
@@ -252,7 +258,7 @@ void loop(void){
         SetPowerLevel(PowerSideEnum::Left, 0.0);
         SetPowerLevel(PowerSideEnum::Right, 0.0);
     }
-
+  */
   delay(100);
 }
 
@@ -671,8 +677,8 @@ void recvWithStartEndMarkers() {
     char endMarker = '>';
     char rc;
 
-    while (Serial.available() > 0 && newData == false) {
-        rc = Serial.read();
+    while (Serial3.available() > 0 && newData == false) {
+        rc = Serial3.read();
 
         if (recvInProgress == true) {
             if (rc != endMarker) {
