@@ -58,17 +58,18 @@ roiSize = (16, 16) # roi size on the scaled down image (converted to HSV)
 a_button_clicked = False
 
 # # initialize serial communication
-ser = serial.Serial(port='/dev/ttyAMA0', baudrate=57600, timeout=0.05)
+ser = serial.Serial(port='/dev/ttyS0', baudrate=9600, timeout=0.05)
 
 
 
 while True:
 # for cameraFrame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
+    #print('lop')
     loopStart = time.time()
     if not paused:
 
         frame = vs.read()
-        # frame = cv2.flip(frame, flipCode=-1)
+        frame = cv2.flip(frame, flipCode=-1)
         
         height, width = frame.shape[0:2]
         scaleFactor = 4
@@ -124,11 +125,12 @@ while True:
             #cv2.imshow("canny", canny)
             circles = cv2.HoughCircles(gray_cropped, cv2.HOUGH_GRADIENT, 1, 1000, param1=100, param2=30, minRadius=15, maxRadius=80)
             # ensure at least some circles were found
-            print(circles)
-            
+            #print(circles)
+            #print ("loop2")
             #cv2.imwrite("yy.jpg", crop_img)
             
             if circles is not None:
+                
                 # convert the (x, y) coordinates and radius of the circles to integers
                 circles = np.round(circles[0, :]).astype("int")
          
@@ -184,6 +186,7 @@ while True:
         boundingBoxes = []
         biggestObject_BoundingBox = None
         biggestObjectMiddle = None
+        #print("contour_list" + str(contour_list))
         if contour_list:
         #if contours:
             largestContour = max(contour_list, key=cv2.contourArea)
@@ -210,7 +213,7 @@ while True:
             cv2.rectangle(resizedColor, (x, y), (x+w, y+h), (255, 255, 0), thickness=1)
             cv2.rectangle(upscaledColor, (x*scaleFactor, y*scaleFactor),
                         ((x+w)*scaleFactor, (y+h)*scaleFactor), (255, 255, 0), thickness=2)
-        
+        #print("biggestObject_BoundingBox" + str(biggestObject_BoundingBox))
         if biggestObject_BoundingBox:
             x, y, w, h = biggestObject_BoundingBox
             biggestObjectMiddle = ((x+ w//2)*scaleFactor, (y + h//2)*scaleFactor)
@@ -226,6 +229,7 @@ while True:
             pitch = scaled[1] # up-down
             yaw = scaled[0] # left-right
             cv2.line(upscaledColor, screenMiddle, biggestObjectMiddle, (0, 0, 255))
+            print(str(yaw) + "    " + str(pitch))
             packet = '<packet, {}, {}>'.format(yaw, pitch)
             packetBytes = bytes(packet, 'utf-8')
             
@@ -282,7 +286,7 @@ while True:
     
     # rawCapture.truncate(0)
     loopEnd= time.time()
-    print("loop execution took {:3.2f}ms".format((loopEnd - loopStart)*1000))
+    #print("loop execution took {:3.2f}ms".format((loopEnd - loopStart)*1000))
     
 # cleanup
 cv2.destroyAllWindows()

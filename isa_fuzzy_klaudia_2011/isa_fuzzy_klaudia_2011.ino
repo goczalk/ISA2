@@ -224,22 +224,34 @@ double getCompassAngle(){
 
 void loop(void){
   char rc = 0;
-  while (Serial3.available() > 0) {
+/*
+while(1)
+{
+  Serial.print("1");
+  Serial3.print("1");
+
+  delay(200);
+}*/
+  
+ /* while (Serial3.available() > 0) {
+        Serial.print("av");
         rc = Serial3.read();
+        Serial.print("rcread");
         Serial.println(rc);
-  }
-  /*
+  }*/
+  
   recvWithStartEndMarkers();
   if (newData == true) {
         strcpy(tempChars, receivedChars);
             // this temporary copy is necessary to protect the original data
             //   because strtok() used in parseData() replaces the commas with \0
         packet = parseData();
-        showParsedData(packet);
+        
         newData = false;
     
-      
+/*      
         double direct = (double)packet.packet_int;
+        Serial.println(packet.
         
         fuzzy->setInput(1, -direct);
       
@@ -252,16 +264,98 @@ void loop(void){
       //  Serial.print(buffer);
       
         SetPowerLevel(PowerSideEnum::Left, leftVelocity);
-        SetPowerLevel(PowerSideEnum::Right, rightVelocity);
+        SetPowerLevel(PowerSideEnum::Right, rightVelocity);*/
     }
     else{
-        SetPowerLevel(PowerSideEnum::Left, 0.0);
-        SetPowerLevel(PowerSideEnum::Right, 0.0);
+        /*SetPowerLevel(PowerSideEnum::Left, 0.0);
+        SetPowerLevel(PowerSideEnum::Right, 0.0);*/
     }
-  */
-  delay(100);
+  
+  //delay(100);
+}
+void recvWithStartEndMarkers2()
+{
+    char rc;
+    char startMarker = '<';
+    char endMarker = '>';
+    Serial.println();
+    while (Serial3.available() > 0){
+        rc = Serial3.read();
+        if(rc == startMarker){
+          Serial.print("start");
+        }
+        else if(rc == endMarker){
+          Serial.print("end");
+        }
+        else{
+          Serial.print(rc);
+        }
+        Serial.println();
+    }
+}
+void recvWithStartEndMarkers() {
+    static boolean recvInProgress = false;
+    static byte ndx = 0;
+    char startMarker = '<';
+    char endMarker = '>';
+    char rc;
+
+    while (Serial3.available() > 0 && newData == false) {
+        rc = Serial3.read();
+        
+        if (recvInProgress == true) {
+            if (rc != endMarker) {
+                receivedChars[ndx] = rc;
+                ndx++;
+                if (ndx >= numChars) {
+                    ndx = numChars - 1;
+                }
+                Serial.print("rc ");
+                Serial.print(rc);
+                Serial.println();
+            }
+            else {
+                receivedChars[ndx] = '\0'; // terminate the string
+                Serial.print("receivedChars " );
+                Serial.print(receivedChars);
+                Serial.println();
+                recvInProgress = false;
+                ndx = 0;
+                newData = true;
+            }
+        }
+
+        else if (rc == startMarker) {
+            recvInProgress = true;
+        }
+    }
+}
+dataPacket parseData() {      // split the data into its parts
+
+    dataPacket tmpPacket;
+
+    char * strtokIndx; // this is used by strtok() as an index
+
+    strtokIndx = strtok(tempChars,",");      // get the first part - the string
+    strcpy(tmpPacket.message, strtokIndx); // copy it to messageFromPC
+ 
+    strtokIndx = strtok(NULL, ","); // this continues where the previous call left off
+    tmpPacket.packet_int = atoi(strtokIndx);     // convert this part to an integer
+
+    strtokIndx = strtok(NULL, ",");
+    tmpPacket.packet_float = atof(strtokIndx);     // convert this part to a float
+
+    return tmpPacket;
 }
 
+void showParsedData(dataPacket packet) {
+    Serial.print("Message ");
+    Serial.println(packet.message);
+    Serial.print("Integer ");
+    Serial.println(packet.packet_int);
+    Serial.print("Float ");
+    Serial.println(packet.packet_float);
+}
 
 
 void floop_N(void){
@@ -670,63 +764,7 @@ void zloop(void)
 
 //============
 // TO GET DATA FROM PYTHON OPEN CV
-void recvWithStartEndMarkers() {
-    static boolean recvInProgress = false;
-    static byte ndx = 0;
-    char startMarker = '<';
-    char endMarker = '>';
-    char rc;
 
-    while (Serial3.available() > 0 && newData == false) {
-        rc = Serial3.read();
 
-        if (recvInProgress == true) {
-            if (rc != endMarker) {
-                receivedChars[ndx] = rc;
-                ndx++;
-                if (ndx >= numChars) {
-                    ndx = numChars - 1;
-                }
-            }
-            else {
-                receivedChars[ndx] = '\0'; // terminate the string
-                recvInProgress = false;
-                ndx = 0;
-                newData = true;
-            }
-        }
-
-        else if (rc == startMarker) {
-            recvInProgress = true;
-        }
-    }
-}
-
-dataPacket parseData() {      // split the data into its parts
-
-    dataPacket tmpPacket;
-
-    char * strtokIndx; // this is used by strtok() as an index
-
-    strtokIndx = strtok(tempChars,",");      // get the first part - the string
-    strcpy(tmpPacket.message, strtokIndx); // copy it to messageFromPC
- 
-    strtokIndx = strtok(NULL, ","); // this continues where the previous call left off
-    tmpPacket.packet_int = atoi(strtokIndx);     // convert this part to an integer
-
-    strtokIndx = strtok(NULL, ",");
-    tmpPacket.packet_float = atof(strtokIndx);     // convert this part to a float
-
-    return tmpPacket;
-}
-
-void showParsedData(dataPacket packet) {
-    Serial.print("Message ");
-    Serial.println(packet.message);
-    Serial.print("Integer ");
-    Serial.println(packet.packet_int);
-    Serial.print("Float ");
-    Serial.println(packet.packet_float);
-}
 
 // ==========
