@@ -33,6 +33,10 @@ char receivedChars[numChars];
 char tempChars[numChars];        // temporary array for use when parsing
 dataPacket packet;
 boolean newData = false;
+volatile int countNoData = 0;
+int countData = 0;
+double sumR = 0.0;
+double sumL = 0.0;
 
 
 void SetPowerLevel(PowerSideEnum side, int level)
@@ -249,26 +253,51 @@ while(1)
         
         newData = false;
     
-/*      
+      
         double direct = (double)packet.packet_int;
-        Serial.println(packet.
+        //Serial.println(packet.)
         
-        fuzzy->setInput(1, -direct);
+        fuzzy->setInput(1, direct);
       
         fuzzy->fuzzify();
       
         double leftVelocity = fuzzy->defuzzify(1);
         double rightVelocity= fuzzy->defuzzify(2);
-      
-      //  sprintf(buffer, "\n Direct: %lf; leftVelocity: %lf, rightVelocity: %lf", direct, leftVelocity, rightVelocity);
-      //  Serial.print(buffer);
-      
-        SetPowerLevel(PowerSideEnum::Left, leftVelocity);
-        SetPowerLevel(PowerSideEnum::Right, rightVelocity);*/
+        leftVelocity = leftVelocity/2;
+        rightVelocity = rightVelocity/2;
+        sprintf(buffer, "\n Direct: %lf; leftVelocity: %lf, rightVelocity: %lf", direct, rightVelocity, leftVelocity);
+        Serial.print(buffer);
+        countData = countData + 1;
+        sumR = sumR + leftVelocity;
+        sumL = sumL + rightVelocity;
+        sprintf(buffer, "\n sumR: %lf", sumR);
+        Serial.print(buffer);
+        if(countData >= 10){
+          sprintf(buffer, "\n CountData 10");
+          Serial.print(buffer);
+          double avgR = sumR/10;
+          double avgL = sumL/10;
+          sprintf(buffer, "\nleftAvg: %lf, rightAvg: %lf", avgL, avgR);
+          Serial.print(buffer);
+          
+          countData = 0;
+          sumR = 0.0;
+          sumL = 0.0;
+        }
+        SetPowerLevel(PowerSideEnum::Left, rightVelocity);
+        SetPowerLevel(PowerSideEnum::Right, leftVelocity);
     }
     else{
-        /*SetPowerLevel(PowerSideEnum::Left, 0.0);
-        SetPowerLevel(PowerSideEnum::Right, 0.0);*/
+        countNoData = countNoData + 1;
+        //sprintf(buffer, "\n CountNoData: %d", countNoData);
+        //Serial.print(buffer);
+        if(countNoData > 500000){
+          //sprintf(buffer, "\n CountNoData 50");
+          //Serial.print(buffer);
+          SetPowerLevel(PowerSideEnum::Left, 0.0);
+          SetPowerLevel(PowerSideEnum::Right, 0.0);
+          countNoData = 0;
+        }
     }
   
   //delay(100);
@@ -310,18 +339,19 @@ void recvWithStartEndMarkers() {
                 if (ndx >= numChars) {
                     ndx = numChars - 1;
                 }
-                Serial.print("rc ");
+                /*Serial.print("rc ");
                 Serial.print(rc);
-                Serial.println();
+                Serial.println();*/
             }
             else {
                 receivedChars[ndx] = '\0'; // terminate the string
-                Serial.print("receivedChars " );
+                /*Serial.print("receivedChars " );
                 Serial.print(receivedChars);
-                Serial.println();
+                Serial.println();*/
                 recvInProgress = false;
                 ndx = 0;
                 newData = true;
+                Serial3.flush();
             }
         }
 
