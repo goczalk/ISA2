@@ -1,3 +1,22 @@
+
+double getCompassAngle(){
+    qmc.measure();
+    int16_t x = qmc.getX();
+    int16_t y = qmc.getY();
+
+//https://pastebin.com/MTj68RFr
+//    x = -(x + 90) / 5.4;
+//    y = -(y + 200) / 5.8;
+
+        double angle = atan2(x,y);
+        angle = (angle > 0 ? angle : (2*PI + angle)) * 360 / (2*PI);
+        angle -= 180;
+//        y = angle;
+
+        // 0 = N, 180/-180 = S, E = 90, W = -90
+        // ale bladna -155 jest dodatni, a na 155 jest ujemny
+        return angle;
+}
 void floop_N(void){
   double angle = getCompassAngle();
   fuzzy->setInput(1, angle);

@@ -39,43 +39,6 @@ double sumR = 0.0;
 double sumL = 0.0;
 
 
-void SetPowerLevel(PowerSideEnum side, int level)
-{
-  level = constrain(level, -255, 255);
-  
-  if (side == PowerSideEnum::Right) {
-    if (level > 0) {
-      // do przodu
-      digitalWrite(A_PHASE, 1);
-      analogWrite(A_ENABLE, level);
-    } else if (level < 0) {
-      // do tyĹu
-      digitalWrite(A_PHASE, 0);
-      analogWrite(A_ENABLE, -level);
-    } else {
-      // stop
-      digitalWrite(A_PHASE, 0);
-      analogWrite(A_ENABLE, 0);
-    }
-  }
-  
-  if (side == PowerSideEnum::Left) {
-    if (level > 0) {
-      // do przodu
-      digitalWrite(B_PHASE, 1);
-      analogWrite(B_ENABLE, level);
-    } else if (level < 0) {
-      // do tyĹu
-      digitalWrite(B_PHASE, 0);
-      analogWrite(B_ENABLE, -level);
-    } else {
-      // stop
-      digitalWrite(B_PHASE, 0);
-      analogWrite(B_ENABLE, 0);
-    }
-  } 
-}
-
 
 void setup(void)
 {
@@ -129,82 +92,6 @@ void setup(void)
 
   fuzzylogic();
 }
-
-void fuzzylogic(void){
-  // Step 2 - Creating a FuzzyInput distance
-  FuzzyInput* angleF = new FuzzyInput(1);// With its ID in param
-
-  // Creating the FuzzySet to compond FuzzyInput distance
- FuzzySet* west = new FuzzySet(0, 0, -45, -10); 
- angleF->addFuzzySet(west); 
- FuzzySet* north = new FuzzySet(-45, -10, 10, 45); 
- angleF->addFuzzySet(north); 
- FuzzySet* east = new FuzzySet(10, 45, 90, 90);
- angleF->addFuzzySet(east); 
-
- fuzzy->addFuzzyInput(angleF); // Add FuzzyInput to Fuzzy object
-
-
-// Passo 3a - Creating FuzzyOutput velocity for left wheels
- FuzzyOutput* leftWheelsVelocity = new FuzzyOutput(1);// With its ID in param
-
- // Creating FuzzySet to compond FuzzyOutput 
- FuzzySet* straightL = new FuzzySet(50, 200, 255, 255); // 
- leftWheelsVelocity->addFuzzySet(straightL); // Add FuzzySet slow to turnnessF
- FuzzySet* backL = new FuzzySet(-255, -255, -200, -50); // 
- leftWheelsVelocity->addFuzzySet(backL); // Add FuzzySet fast to turnnessF
-
- fuzzy->addFuzzyOutput(leftWheelsVelocity); // Add FuzzyOutput to Fuzzy object
-
-
-// Passo 3b - Creating FuzzyOutput velocity for right wheels
- FuzzyOutput* rightWheelsVelocity = new FuzzyOutput(2);// With its ID in param
-
-FuzzySet* straightR = new FuzzySet(50, 200, 255, 255); // 
- FuzzySet* backR = new FuzzySet(-255, -255, -200, -50); // 
-
- // Creating FuzzySet to compond FuzzyOutput 
- rightWheelsVelocity->addFuzzySet(straightR); // Add FuzzySet slow to turnnessF
- rightWheelsVelocity->addFuzzySet(backR); // Add FuzzySet fast to turnnessF
- fuzzy->addFuzzyOutput(rightWheelsVelocity); // Add FuzzyOutput to Fuzzy object
-
-
- //Passo 4 - Assembly the Fuzzy rules
- // FuzzyRule "IF ifDirectionWest THEN staright left, back right"
- FuzzyRuleAntecedent* ifDirectionWest = new FuzzyRuleAntecedent(); // Instantiating an Antecedent to expression
- ifDirectionWest->joinSingle(west); // Adding corresponding FuzzySet to Antecedent object
- FuzzyRuleConsequent* thenTurnRight = new FuzzyRuleConsequent(); // Instantiating a Consequent to expression
- thenTurnRight->addOutput(straightL);// Adding corresponding FuzzySet to Consequent object
- thenTurnRight->addOutput(backR);// Adding corresponding FuzzySet to Consequent object
- // Instantiating a FuzzyRule object
- FuzzyRule* fuzzyRule01 = new FuzzyRule(1, ifDirectionWest, thenTurnRight); // Passing the Antecedent and the Consequent of expression
- 
- fuzzy->addFuzzyRule(fuzzyRule01); // Adding FuzzyRule to Fuzzy object
- 
- // FuzzyRule "IF ifDirectionEast THEN staright back, back left"
- FuzzyRuleAntecedent* ifDirectionEast = new FuzzyRuleAntecedent(); // Instantiating an Antecedent to expression
- ifDirectionEast->joinSingle(east); // Adding corresponding FuzzySet to Antecedent object
- FuzzyRuleConsequent* thenTurnLeft = new FuzzyRuleConsequent(); // Instantiating a Consequent to expression
- thenTurnLeft->addOutput(backL);// Adding corresponding FuzzySet to Consequent object
-  thenTurnLeft->addOutput(straightR);// Adding corresponding FuzzySet to Consequent object
- // Instantiating a FuzzyRule object
- FuzzyRule* fuzzyRule02 = new FuzzyRule(2, ifDirectionEast, thenTurnLeft); // Passing the Antecedent and the Consequent of expression
- 
- fuzzy->addFuzzyRule(fuzzyRule02); // Adding FuzzyRule to Fuzzy object
- 
- // FuzzyRule "IF distance = big THEN velocity = fast"
- FuzzyRuleAntecedent* ifDirectionNorth = new FuzzyRuleAntecedent(); // Instantiating an Antecedent to expression
- ifDirectionNorth->joinSingle(north); // Adding corresponding FuzzySet to Antecedent object
- FuzzyRuleConsequent* thenStraight = new FuzzyRuleConsequent(); // Instantiating a Consequent to expression
- thenStraight->addOutput(straightL);// Adding corresponding FuzzySet to Consequent object
- thenStraight->addOutput(straightR);
- // Instantiating a FuzzyRule object
- FuzzyRule* fuzzyRule03 = new FuzzyRule(3, ifDirectionNorth, thenStraight); // Passing the Antecedent and the Consequent of expression
- 
- fuzzy->addFuzzyRule(fuzzyRule03); // Adding FuzzyRule to Fuzzy object
-
-};
-
 
 
 
@@ -367,4 +254,116 @@ void showParsedData(dataPacket packet) {
     Serial.println(packet.packet_int);
     Serial.print("Float ");
     Serial.println(packet.packet_float);
+}
+
+void fuzzylogic(void){
+  // Step 2 - Creating a FuzzyInput distance
+  FuzzyInput* angleF = new FuzzyInput(1);// With its ID in param
+
+  // Creating the FuzzySet to compond FuzzyInput distance
+ FuzzySet* west = new FuzzySet(0, 0, -45, -10); 
+ angleF->addFuzzySet(west); 
+ FuzzySet* north = new FuzzySet(-45, -10, 10, 45); 
+ angleF->addFuzzySet(north); 
+ FuzzySet* east = new FuzzySet(10, 45, 90, 90);
+ angleF->addFuzzySet(east); 
+
+ fuzzy->addFuzzyInput(angleF); // Add FuzzyInput to Fuzzy object
+
+
+// Passo 3a - Creating FuzzyOutput velocity for left wheels
+ FuzzyOutput* leftWheelsVelocity = new FuzzyOutput(1);// With its ID in param
+
+ // Creating FuzzySet to compond FuzzyOutput 
+ FuzzySet* straightL = new FuzzySet(50, 200, 255, 255); // 
+ leftWheelsVelocity->addFuzzySet(straightL); // Add FuzzySet slow to turnnessF
+ FuzzySet* backL = new FuzzySet(-255, -255, -200, -50); // 
+ leftWheelsVelocity->addFuzzySet(backL); // Add FuzzySet fast to turnnessF
+
+ fuzzy->addFuzzyOutput(leftWheelsVelocity); // Add FuzzyOutput to Fuzzy object
+
+
+// Passo 3b - Creating FuzzyOutput velocity for right wheels
+ FuzzyOutput* rightWheelsVelocity = new FuzzyOutput(2);// With its ID in param
+
+FuzzySet* straightR = new FuzzySet(50, 200, 255, 255); // 
+ FuzzySet* backR = new FuzzySet(-255, -255, -200, -50); // 
+
+ // Creating FuzzySet to compond FuzzyOutput 
+ rightWheelsVelocity->addFuzzySet(straightR); // Add FuzzySet slow to turnnessF
+ rightWheelsVelocity->addFuzzySet(backR); // Add FuzzySet fast to turnnessF
+ fuzzy->addFuzzyOutput(rightWheelsVelocity); // Add FuzzyOutput to Fuzzy object
+
+
+ //Passo 4 - Assembly the Fuzzy rules
+ // FuzzyRule "IF ifDirectionWest THEN staright left, back right"
+ FuzzyRuleAntecedent* ifDirectionWest = new FuzzyRuleAntecedent(); // Instantiating an Antecedent to expression
+ ifDirectionWest->joinSingle(west); // Adding corresponding FuzzySet to Antecedent object
+ FuzzyRuleConsequent* thenTurnRight = new FuzzyRuleConsequent(); // Instantiating a Consequent to expression
+ thenTurnRight->addOutput(straightL);// Adding corresponding FuzzySet to Consequent object
+ thenTurnRight->addOutput(backR);// Adding corresponding FuzzySet to Consequent object
+ // Instantiating a FuzzyRule object
+ FuzzyRule* fuzzyRule01 = new FuzzyRule(1, ifDirectionWest, thenTurnRight); // Passing the Antecedent and the Consequent of expression
+ 
+ fuzzy->addFuzzyRule(fuzzyRule01); // Adding FuzzyRule to Fuzzy object
+ 
+ // FuzzyRule "IF ifDirectionEast THEN staright back, back left"
+ FuzzyRuleAntecedent* ifDirectionEast = new FuzzyRuleAntecedent(); // Instantiating an Antecedent to expression
+ ifDirectionEast->joinSingle(east); // Adding corresponding FuzzySet to Antecedent object
+ FuzzyRuleConsequent* thenTurnLeft = new FuzzyRuleConsequent(); // Instantiating a Consequent to expression
+ thenTurnLeft->addOutput(backL);// Adding corresponding FuzzySet to Consequent object
+  thenTurnLeft->addOutput(straightR);// Adding corresponding FuzzySet to Consequent object
+ // Instantiating a FuzzyRule object
+ FuzzyRule* fuzzyRule02 = new FuzzyRule(2, ifDirectionEast, thenTurnLeft); // Passing the Antecedent and the Consequent of expression
+ 
+ fuzzy->addFuzzyRule(fuzzyRule02); // Adding FuzzyRule to Fuzzy object
+ 
+ // FuzzyRule "IF distance = big THEN velocity = fast"
+ FuzzyRuleAntecedent* ifDirectionNorth = new FuzzyRuleAntecedent(); // Instantiating an Antecedent to expression
+ ifDirectionNorth->joinSingle(north); // Adding corresponding FuzzySet to Antecedent object
+ FuzzyRuleConsequent* thenStraight = new FuzzyRuleConsequent(); // Instantiating a Consequent to expression
+ thenStraight->addOutput(straightL);// Adding corresponding FuzzySet to Consequent object
+ thenStraight->addOutput(straightR);
+ // Instantiating a FuzzyRule object
+ FuzzyRule* fuzzyRule03 = new FuzzyRule(3, ifDirectionNorth, thenStraight); // Passing the Antecedent and the Consequent of expression
+ 
+ fuzzy->addFuzzyRule(fuzzyRule03); // Adding FuzzyRule to Fuzzy object
+
+};
+
+void SetPowerLevel(PowerSideEnum side, int level)
+{
+  level = constrain(level, -255, 255);
+  
+  if (side == PowerSideEnum::Right) {
+    if (level > 0) {
+      // do przodu
+      digitalWrite(A_PHASE, 1);
+      analogWrite(A_ENABLE, level);
+    } else if (level < 0) {
+      // do tyĹu
+      digitalWrite(A_PHASE, 0);
+      analogWrite(A_ENABLE, -level);
+    } else {
+      // stop
+      digitalWrite(A_PHASE, 0);
+      analogWrite(A_ENABLE, 0);
+    }
+  }
+  
+  if (side == PowerSideEnum::Left) {
+    if (level > 0) {
+      // do przodu
+      digitalWrite(B_PHASE, 1);
+      analogWrite(B_ENABLE, level);
+    } else if (level < 0) {
+      // do tyĹu
+      digitalWrite(B_PHASE, 0);
+      analogWrite(B_ENABLE, -level);
+    } else {
+      // stop
+      digitalWrite(B_PHASE, 0);
+      analogWrite(B_ENABLE, 0);
+    }
+  } 
 }
