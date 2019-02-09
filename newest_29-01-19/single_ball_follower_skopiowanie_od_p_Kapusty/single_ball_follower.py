@@ -54,6 +54,7 @@ colorLower = (0, 100, 50)
 colorUpper = (100, 255, 255)
 colorTolerance = 3
 paused = False
+debugBallIn = False
 roiSize = (16, 16) # roi size on the scaled down image (converted to HSV)
 a_button_clicked = False
 
@@ -83,11 +84,13 @@ while True:
 
         roi = resizedHSV[newHeight//2 - roiSize[0]//2 : newHeight //2 + roiSize[0]//2, newWidth//2 - roiSize[1]//2 : newWidth//2 + roiSize[1]//2, :]
         # roi = resizedHSV[10*newHeight//20 : 12*newHeight//20, 10*newWidth//20 : 12*newWidth // 20, :]
-        
-        colorLowerWithTolerance = (colorLower[0] - colorTolerance,) + colorLower[1:]
-        colorUpperWithTolerance = (colorUpper[0] + colorTolerance,) + colorUpper[1:]
-
-        mask = cv2.inRange(resizedHSV, colorLowerWithTolerance, colorUpperWithTolerance)
+        #colorLower = (0, 100, 50) #172,234,167
+        #colorUpper = (100, 255, 255) #177,255,255
+        #colorLowerWithTolerance = (colorLower[0] - colorTolerance,) + colorLower[1:]
+        #colorUpperWithTolerance = (colorUpper[0] + colorTolerance,) + colorUpper[1:]
+        cv2.imshow("resizedHSV",resizedHSV)
+        mask = cv2.inRange(resizedHSV, colorLower, colorUpper)
+        cv2.imshow("mask1",mask)
         cv2.erode(mask, None, iterations=5)
         cv2.dilate(mask, None, iterations=5)
 
@@ -95,12 +98,10 @@ while True:
         contour_list = []
         
         #contour_list = contours
-        
-        
+
         if a_button_clicked:
             
             rect = cv2.boundingRect(mask)
-            
             #print(rect)
             # [0] -> Y, [1] -> X ; jest na odwrot
             # change 50 for edges
@@ -114,16 +115,19 @@ while True:
             crop_img = frame[y_lower:y_upper, x_lower:x_upper]
             #cv2.imshow("crop_img", crop_img)
             output = crop_img.copy()
-            cv2.imshow("output", output)
+            #cv2.imshow("output", output)
             
             # is not working with canny at all?
             #blur = crop_img
             blur = cv2.GaussianBlur(crop_img, (5,5), 0)
-            cv2.imshow("blur", blur)
+            #cv2.imshow("blur", blur)
             gray_cropped = cv2.cvtColor(blur, cv2.COLOR_BGR2GRAY)
             #canny = cv2.Canny(gray_cropped, 50, 200, 10)
             #cv2.imshow("canny", canny)
-            circles = cv2.HoughCircles(gray_cropped, cv2.HOUGH_GRADIENT, 1, 1000, param1=100, param2=30, minRadius=15, maxRadius=80)
+            circles = cv2.HoughCircles(gray_cropped, cv2.HOUGH_GRADIENT, 1, 1000, param1=100, param2=30, minRadius=15, maxRadius=800)
+            if debugBallIn:
+                print("ballIn")
+                debugBallIn = not debugBallIn
             # ensure at least some circles were found
             #print(circles)
             #print ("loop2")
@@ -280,6 +284,8 @@ while True:
         print("New color range: {}".format(colorTolerance))
     elif key == ord('p'):
         paused = not paused
+    elif key == ord('m'):
+        debugBallIn = not debugBallIn
     elif key == ord('d'):
         # pause/unpause arduino camera movement
         ser.write(bytes('d', 'utf-8'))

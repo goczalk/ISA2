@@ -35,10 +35,10 @@ dataPacket packet;
 boolean newData = false;
 volatile int countNoData = 0;
 int countData = 0;
-double sumR = 0.0;
-double sumL = 0.0;
-
-
+double avgR;
+double avgL;
+const int queueSize = 10;
+double avgResults[queueSize];
 
 void setup(void)
 {
@@ -75,7 +75,6 @@ void setup(void)
 
   //initialize the variables we're linked to
   Input = analogRead(0);
-
   
   //to co chcemy miec
 
@@ -89,7 +88,6 @@ void setup(void)
   //do naszych wartosci
 //  myPID.SetOutputLimits(-90, 90);
 //  myPID.SetOutputLimits(-180, 180);
-
   fuzzylogic();
 }
 
@@ -121,7 +119,7 @@ while(1)
         packet = parseData();
         
         newData = false;
-    
+        
       
         double direct = (double)packet.packet_int;
         //Serial.println(packet.)
@@ -132,35 +130,44 @@ while(1)
       
         double leftVelocity = fuzzy->defuzzify(1);
         double rightVelocity= fuzzy->defuzzify(2);
-        leftVelocity = leftVelocity/2;
-        rightVelocity = rightVelocity/2;
-        sprintf(buffer, "\n Direct: %lf; leftVelocity: %lf, rightVelocity: %lf", direct, rightVelocity, leftVelocity);
+        leftVelocity = leftVelocity;
+        rightVelocity = rightVelocity;
+        sprintf(buffer, "\n Direct: %lf; leftVelocity: %lf, rightVelocity: %lf", direct, leftVelocity, rightVelocity);
         Serial.print(buffer);
-        countData = countData + 1;
-        sumR = sumR + leftVelocity;
-        sumL = sumL + rightVelocity;
+        /*
         sprintf(buffer, "\n sumR: %lf", sumR);
-        Serial.print(buffer);
-        if(countData >= 10){
-          sprintf(buffer, "\n CountData 10");
-          Serial.print(buffer);
-          double avgR = sumR/10;
-          double avgL = sumL/10;
-          sprintf(buffer, "\nleftAvg: %lf, rightAvg: %lf", avgL, avgR);
-          Serial.print(buffer);
+        Serial.print(buffer);*/
+        pushRight(rightVelocity);
+        pushLeft(leftVelocity);
+        if(countData < 5){
+          countData = countData + 1;
+          avgL = leftVelocity;//without it first avg will be from 0
+          avgR = rightVelocity;
+          /*sprintf(buffer, "\n CountData 10");
+          Serial.print(buffer);*/
           
-          countData = 0;
-          sumR = 0.0;
-          sumL = 0.0;
+          
         }
-        SetPowerLevel(PowerSideEnum::Left, rightVelocity);
-        SetPowerLevel(PowerSideEnum::Right, leftVelocity);
+        else{
+          double popL = popLeft();
+          double popR = popRight();
+          /*sprintf(buffer, "\nleftBefAvg: %lf, leftPop: %lf, rightBefAvg: %lf, rightPop: %lf", avgL, popL, avgR, popR);
+          Serial.print(buffer);*/
+          avgL = (avgL + popL)/2;
+          avgR = (avgR + popR)/2;
+          sprintf(buffer, "\n->     leftAvg: %lf, rightAvg: %lf", avgL, avgR);
+          Serial.print(buffer);
+        }
+        SetPowerLevel(PowerSideEnum::Left, avgR);//swip direction to equals direction of moving
+        SetPowerLevel(PowerSideEnum::Right, avgL);
     }
     else{
         countNoData = countNoData + 1;
         //sprintf(buffer, "\n CountNoData: %d", countNoData);
         //Serial.print(buffer);
         if(countNoData > 500000){
+          popLeft(); //if nothing spotted clear queue
+          popRight();
           //sprintf(buffer, "\n CountNoData 50");
           //Serial.print(buffer);
           SetPowerLevel(PowerSideEnum::Left, 0.0);
@@ -366,4 +373,75 @@ void SetPowerLevel(PowerSideEnum side, int level)
       analogWrite(B_ENABLE, 0);
     }
   } 
+}
+
+
+//*****************QUEUE******************//
+
+
+
+struct kolejka
+{
+    double dane;
+    kolejka *ref;
+};
+ 
+kolejka *pointerLeft = NULL; ;
+kolejka *tmpLeft = NULL; ;
+kolejka *firstLeft = NULL; ;
+ 
+void pushLeft(double dane)
+{
+    tmpLeft = (struct kolejka*)malloc(sizeof(struct kolejka));
+    (*tmpLeft).dane = dane;
+    if(pointerLeft == NULL) firstLeft = tmpLeft; 
+    else (*pointerLeft).ref = tmpLeft; //bądź pointer->ref
+    tmpLeft -> ref = NULL; //przykładowy
+    pointerLeft = tmpLeft;
+}
+ 
+double popLeft()
+{
+    double poped;
+    if (firstLeft != NULL)
+    {
+            tmpLeft = (*firstLeft).ref;
+            //printf("%d\n", (*first).dane);
+            poped = (*firstLeft).dane;
+            free(firstLeft);
+            firstLeft = tmpLeft;
+            if(firstLeft==NULL)
+                    pointerLeft = NULL;
+    }
+    return poped;
+}
+
+kolejka *pointerRight = NULL; ;
+kolejka *tmpRight = NULL; ;
+kolejka *firstRight = NULL; ;
+ 
+void pushRight(double dane)
+{
+    tmpRight = (struct kolejka*)malloc(sizeof(struct kolejka));
+    (*tmpRight).dane = dane;
+    if(pointerRight == NULL) firstRight = tmpRight; 
+    else (*pointerRight).ref = tmpRight; //bądź pointer->ref
+    tmpRight -> ref = NULL; //przykładowy
+    pointerRight = tmpRight;
+}
+ 
+double popRight()
+{
+    double poped;
+    if (firstRight != NULL)
+    {
+            tmpRight = (*firstRight).ref;
+            //printf("%d\n", (*first).dane);
+            poped = (*firstRight).dane;
+            free(firstRight);
+            firstRight = tmpRight;
+            if(firstRight==NULL)
+                    pointerRight = NULL;
+    }
+    return poped;
 }

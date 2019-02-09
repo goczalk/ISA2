@@ -49,7 +49,13 @@ void initServos()
     servoYaw.write(yawCurrent);
     servoPitch.write(pitchCurrent);
 }
-
+void initServos2()
+{
+    servoYaw.attach(20);
+    servoPitch.attach(21);
+    servoYaw.write(yawCurrent);
+    servoPitch.write(pitchCurrent);
+}
 int read_number()
 {
     inString = Serial.readStringUntil('\n');
