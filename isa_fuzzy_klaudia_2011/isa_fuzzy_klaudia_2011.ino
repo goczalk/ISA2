@@ -132,14 +132,14 @@ while(1)
         double rightVelocity= fuzzy->defuzzify(2);
         leftVelocity = leftVelocity;
         rightVelocity = rightVelocity;
-        sprintf(buffer, "\n Direct: %lf; leftVelocity: %lf, rightVelocity: %lf", direct, leftVelocity, rightVelocity);
+        /*sprintf(buffer, "\n Direct: %lf; leftVelocity: %lf, rightVelocity: %lf", direct, leftVelocity, rightVelocity);
         Serial.print(buffer);
-        /*
+        
         sprintf(buffer, "\n sumR: %lf", sumR);
         Serial.print(buffer);*/
         pushRight(rightVelocity);
         pushLeft(leftVelocity);
-        if(countData < 5){
+        if(countData < 10){
           countData = countData + 1;
           avgL = leftVelocity;//without it first avg will be from 0
           avgR = rightVelocity;
@@ -155,7 +155,7 @@ while(1)
           Serial.print(buffer);*/
           avgL = (avgL + popL)/2;
           avgR = (avgR + popR)/2;
-          sprintf(buffer, "\n->     leftAvg: %lf, rightAvg: %lf", avgL, avgR);
+          sprintf(buffer, "\n->    direct: %lf leftAvg: %lf, rightAvg: %lf", direct, avgL, avgR);
           Serial.print(buffer);
         }
         SetPowerLevel(PowerSideEnum::Left, avgR);//swip direction to equals direction of moving
@@ -268,11 +268,11 @@ void fuzzylogic(void){
   FuzzyInput* angleF = new FuzzyInput(1);// With its ID in param
 
   // Creating the FuzzySet to compond FuzzyInput distance
- FuzzySet* west = new FuzzySet(0, 0, -45, -10); 
+ FuzzySet* west = new FuzzySet(-270, -270, -45, -10); 
  angleF->addFuzzySet(west); 
- FuzzySet* north = new FuzzySet(-45, -10, 10, 45); 
+ FuzzySet* north = new FuzzySet(-270, -10, 10, 270); 
  angleF->addFuzzySet(north); 
- FuzzySet* east = new FuzzySet(10, 45, 90, 90);
+ FuzzySet* east = new FuzzySet(10, 45, 270, 270);
  angleF->addFuzzySet(east); 
 
  fuzzy->addFuzzyInput(angleF); // Add FuzzyInput to Fuzzy object

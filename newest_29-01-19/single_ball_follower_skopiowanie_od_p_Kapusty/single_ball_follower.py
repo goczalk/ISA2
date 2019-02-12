@@ -124,7 +124,7 @@ while True:
             gray_cropped = cv2.cvtColor(blur, cv2.COLOR_BGR2GRAY)
             #canny = cv2.Canny(gray_cropped, 50, 200, 10)
             #cv2.imshow("canny", canny)
-            circles = cv2.HoughCircles(gray_cropped, cv2.HOUGH_GRADIENT, 1, 1000, param1=100, param2=30, minRadius=15, maxRadius=800)
+            circles = cv2.HoughCircles(gray_cropped, cv2.HOUGH_GRADIENT, 1, 1000, param1=100, param2=30, minRadius=15, maxRadius=80)
             if debugBallIn:
                 print("ballIn")
                 debugBallIn = not debugBallIn
@@ -268,8 +268,8 @@ while True:
         avg_s /= i
         avg_v /= i
         print("HUE:{}, SAT:{}, VAL:{}".format(avg_h, avg_s, avg_v))
-        colorLower = (max(0, avg_h - 10), max(0, avg_s - 20), max(0, avg_v - 30))
-        colorUpper = (min(255, avg_h + 10), min(255, avg_s  + 20), min(255, avg_v + 30))
+        colorLower = (max(0, avg_h - 20), max(0, avg_s - 50), max(0, avg_v - 70))
+        colorUpper = (min(255, avg_h + 20), min(255, avg_s  + 50), min(255, avg_v + 70))
         #mask = cv2.inRange(resizedHSV, colorLower, colorUpper)
         #cv2.imshow("mask1", mask)
 
