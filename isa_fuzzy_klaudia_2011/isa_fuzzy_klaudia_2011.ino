@@ -1,4 +1,4 @@
-#include <ISAMobile.h>
+#include "ISAMobile.h"
 
 #include <FuzzyRule.h>
 #include <FuzzyComposition.h>
@@ -39,6 +39,7 @@ double avgR;
 double avgL;
 const int queueSize = 10;
 double avgResults[queueSize];
+int distFront, distBack, distRight, distLeft = 0;
 
 void setup(void)
 {
@@ -94,8 +95,40 @@ void setup(void)
 
 
 void loop(void){
-  char rc = 0;
+  /* czujniki! */
+  distFront = measure(US_FRONT_TRIGGER_PIN, US_FRONT_ECHO_PIN);
+  distBack = measure(US_BACK_TRIGGER_PIN, US_BACK_ECHO_PIN);
+  distRight = measure(US_RIGHT_TRIGGER_PIN, US_RIGHT_ECHO_PIN);
+  distLeft = measure(US_LEFT_TRIGGER_PIN, US_LEFT_ECHO_PIN);
+  
+  //char buffer[64];
+  //sprintf(buffer, "front: %d, back:", distFront);
+  //Serial.println(buffer);
+    
+  boolean front = false;
+  boolean back = false;
+  boolean right = false;
+  boolean left = false;
+  if(distFront < 15 && distFront > 0 ){
+    front = true;
+  }
+  if(distBack < 15 && distBack > 0 ){
+    back = true;
+  }
+  if(distRight < 15 && distRight > 0 ){
+    right = true;
+  }
+  if(distLeft < 15 && distLeft > 0 ){
+    left = true;
+  }
+
+  if(front || back || left || right) {
+    SetPowerLevel(PowerSideEnum::Left, 0.0);
+    SetPowerLevel(PowerSideEnum::Right, 0.0);
+  }
+  
 /*
+  char rc = 0;
 while(1)
 {
   Serial.print("1");
@@ -139,6 +172,7 @@ while(1)
         Serial.print(buffer);*/
         pushRight(rightVelocity);
         pushLeft(leftVelocity);
+
         if(countData < 10){
           countData = countData + 1;
           avgL = leftVelocity;//without it first avg will be from 0
@@ -160,14 +194,17 @@ while(1)
         }
         SetPowerLevel(PowerSideEnum::Left, avgR);//swip direction to equals direction of moving
         SetPowerLevel(PowerSideEnum::Right, avgL);
+
+        countNoData = 0;
     }
     else{
         countNoData = countNoData + 1;
-        //sprintf(buffer, "\n CountNoData: %d", countNoData);
-        //Serial.print(buffer);
-        if(countNoData > 500000){
+        sprintf(buffer, "\n CountNoData: %d", countNoData);
+        Serial.print(buffer);
+        if(countNoData > 30){ //500000 - 2,3sek?
           popLeft(); //if nothing spotted clear queue
           popRight();
+          //countData = 0;
           //sprintf(buffer, "\n CountNoData 50");
           //Serial.print(buffer);
           SetPowerLevel(PowerSideEnum::Left, 0.0);
@@ -178,6 +215,27 @@ while(1)
   
   //delay(100);
 }
+
+
+/* do czujnikow ultradzwiekowych */
+int measure(int trigger, int echo)
+{
+  digitalWrite(trigger, false);
+  delayMicroseconds(2);
+
+  digitalWrite(trigger, true);
+  delayMicroseconds(10);
+  digitalWrite(trigger, false);
+
+  // zmierz czas przelotu fali dźwiękowej
+  int duration = pulseIn(echo, true);
+
+  // przelicz czas na odległość (1/2 Vsound(t=20st.C))
+  int distance = (int)((float)duration * 0.03438f * 0.5f);
+  return distance;
+}
+
+
 void recvWithStartEndMarkers2()
 {
     char rc;
@@ -268,11 +326,11 @@ void fuzzylogic(void){
   FuzzyInput* angleF = new FuzzyInput(1);// With its ID in param
 
   // Creating the FuzzySet to compond FuzzyInput distance
- FuzzySet* west = new FuzzySet(-270, -270, -45, -10); 
+ FuzzySet* west = new FuzzySet(-270, -270, -70, -20); 
  angleF->addFuzzySet(west); 
- FuzzySet* north = new FuzzySet(-270, -10, 10, 270); 
+ FuzzySet* north = new FuzzySet(-270, -20, 20, 270); 
  angleF->addFuzzySet(north); 
- FuzzySet* east = new FuzzySet(10, 45, 270, 270);
+ FuzzySet* east = new FuzzySet(20, 70, 270, 270);
  angleF->addFuzzySet(east); 
 
  fuzzy->addFuzzyInput(angleF); // Add FuzzyInput to Fuzzy object
